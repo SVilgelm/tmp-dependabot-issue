@@ -787,7 +787,7 @@ func (a Args) Copy() Args {
 }
 
 func (a Args) String() string {
-	buf := make([]string, 0, len(a))
+	var buf []string
 	for _, t := range a {
 		buf = append(buf, t.String())
 	}
@@ -931,7 +931,7 @@ func (body Body) SetLoc(loc *Location) {
 }
 
 func (body Body) String() string {
-	buf := make([]string, 0, len(body))
+	var buf []string
 	for _, v := range body {
 		buf = append(buf, v.String())
 	}
@@ -948,11 +948,6 @@ func (body Body) Vars(params VarVisitorParams) VarSet {
 
 // NewExpr returns a new Expr object.
 func NewExpr(terms interface{}) *Expr {
-	switch terms.(type) {
-	case *SomeDecl, *Every, *Term, []*Term: // ok
-	default:
-		panic("unreachable")
-	}
 	return &Expr{
 		Negated: false,
 		Terms:   terms,
@@ -1238,7 +1233,7 @@ func (expr *Expr) SetLoc(loc *Location) {
 }
 
 func (expr *Expr) String() string {
-	buf := make([]string, 0, 2+len(expr.With))
+	var buf []string
 	if expr.Negated {
 		buf = append(buf, "not")
 	}

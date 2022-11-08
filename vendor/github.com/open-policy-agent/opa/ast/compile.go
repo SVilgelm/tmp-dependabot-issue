@@ -475,16 +475,16 @@ func (c *Compiler) GetArity(ref Ref) int {
 //
 // E.g., given the following module:
 //
-//		package a.b.c
+//	package a.b.c
 //
-//		p[k] = v { ... }    # rule1
-//	 p[k1] = v1 { ... }  # rule2
+//	p[k] = v { ... }    # rule1
+//  p[k1] = v1 { ... }  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//	GetRulesExact("data.a.b.c.p")   => [rule1, rule2]
-//	GetRulesExact("data.a.b.c.p.x") => nil
-//	GetRulesExact("data.a.b.c")     => nil
+//  GetRulesExact("data.a.b.c.p")   => [rule1, rule2]
+//  GetRulesExact("data.a.b.c.p.x") => nil
+//  GetRulesExact("data.a.b.c")     => nil
 func (c *Compiler) GetRulesExact(ref Ref) (rules []*Rule) {
 	node := c.RuleTree
 
@@ -502,16 +502,16 @@ func (c *Compiler) GetRulesExact(ref Ref) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//		package a.b.c
+//	package a.b.c
 //
-//		p[k] = v { ... }    # rule1
-//	 p[k1] = v1 { ... }  # rule2
+//	p[k] = v { ... }    # rule1
+//  p[k1] = v1 { ... }  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//	GetRulesForVirtualDocument("data.a.b.c.p")   => [rule1, rule2]
-//	GetRulesForVirtualDocument("data.a.b.c.p.x") => [rule1, rule2]
-//	GetRulesForVirtualDocument("data.a.b.c")     => nil
+//  GetRulesForVirtualDocument("data.a.b.c.p")   => [rule1, rule2]
+//  GetRulesForVirtualDocument("data.a.b.c.p.x") => [rule1, rule2]
+//  GetRulesForVirtualDocument("data.a.b.c")     => nil
 func (c *Compiler) GetRulesForVirtualDocument(ref Ref) (rules []*Rule) {
 
 	node := c.RuleTree
@@ -532,17 +532,17 @@ func (c *Compiler) GetRulesForVirtualDocument(ref Ref) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//	package a.b.c
+//  package a.b.c
 //
-//	p[x] = y { ... }  # rule1
-//	p[k] = v { ... }  # rule2
-//	q { ... }         # rule3
+//  p[x] = y { ... }  # rule1
+//  p[k] = v { ... }  # rule2
+//  q { ... }         # rule3
 //
 // The following calls yield the rules on the right.
 //
-//	GetRulesWithPrefix("data.a.b.c.p")   => [rule1, rule2]
-//	GetRulesWithPrefix("data.a.b.c.p.a") => nil
-//	GetRulesWithPrefix("data.a.b.c")     => [rule1, rule2, rule3]
+//  GetRulesWithPrefix("data.a.b.c.p")   => [rule1, rule2]
+//  GetRulesWithPrefix("data.a.b.c.p.a") => nil
+//  GetRulesWithPrefix("data.a.b.c")     => [rule1, rule2, rule3]
 func (c *Compiler) GetRulesWithPrefix(ref Ref) (rules []*Rule) {
 
 	node := c.RuleTree
@@ -581,18 +581,18 @@ func extractRules(s []util.T) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//	package a.b.c
+//  package a.b.c
 //
-//	p[x] = y { q[x] = y; ... } # rule1
-//	q[x] = y { ... }           # rule2
+//  p[x] = y { q[x] = y; ... } # rule1
+//  q[x] = y { ... }           # rule2
 //
 // The following calls yield the rules on the right.
 //
-//	GetRules("data.a.b.c.p")	=> [rule1]
-//	GetRules("data.a.b.c.p.x")	=> [rule1]
-//	GetRules("data.a.b.c.q")	=> [rule2]
-//	GetRules("data.a.b.c")		=> [rule1, rule2]
-//	GetRules("data.a.b.d")		=> nil
+//  GetRules("data.a.b.c.p")	=> [rule1]
+//  GetRules("data.a.b.c.p.x")	=> [rule1]
+//  GetRules("data.a.b.c.q")	=> [rule2]
+//  GetRules("data.a.b.c")		=> [rule1, rule2]
+//  GetRules("data.a.b.d")		=> nil
 func (c *Compiler) GetRules(ref Ref) (rules []*Rule) {
 
 	set := map[*Rule]struct{}{}
@@ -627,34 +627,34 @@ func (c *Compiler) GetRulesDynamic(ref Ref) []*Rule {
 //
 // E.g., given the following modules:
 //
-//	package a.b.c
+//  package a.b.c
 //
-//	r1 = 1  # rule1
+//  r1 = 1  # rule1
 //
 // and:
 //
-//	package a.d.c
+//  package a.d.c
 //
-//	r2 = 2  # rule2
+//  r2 = 2  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//	GetRulesDynamicWithOpts("data.a[x].c[y]", opts) => [rule1, rule2]
-//	GetRulesDynamicWithOpts("data.a[x].c.r2", opts) => [rule2]
-//	GetRulesDynamicWithOpts("data.a.b[x][y]", opts) => [rule1]
+//  GetRulesDynamicWithOpts("data.a[x].c[y]", opts) => [rule1, rule2]
+//  GetRulesDynamicWithOpts("data.a[x].c.r2", opts) => [rule2]
+//  GetRulesDynamicWithOpts("data.a.b[x][y]", opts) => [rule1]
 //
 // Using the RulesOptions parameter, the inclusion of hidden modules can be
 // controlled:
 //
 // With
 //
-//	package system.main
+//  package system.main
 //
-//	r3 = 3 # rule3
+//  r3 = 3 # rule3
 //
 // We'd get this result:
 //
-//	GetRulesDynamicWithOpts("data[x]", RulesOptions{IncludeHiddenModules: true}) => [rule1, rule2, rule3]
+//  GetRulesDynamicWithOpts("data[x]", RulesOptions{IncludeHiddenModules: true}) => [rule1, rule2, rule3]
 //
 // Without the options, it would be excluded.
 func (c *Compiler) GetRulesDynamicWithOpts(ref Ref, opts RulesOptions) []*Rule {
@@ -1053,25 +1053,7 @@ func mergeSchemas(schemas ...*gojsonschema.SubSchema) (*gojsonschema.SubSchema, 
 	return result, nil
 }
 
-type schemaParser struct {
-	definitionCache map[string]*cachedDef
-}
-
-type cachedDef struct {
-	properties []*types.StaticProperty
-}
-
-func newSchemaParser() *schemaParser {
-	return &schemaParser{
-		definitionCache: map[string]*cachedDef{},
-	}
-}
-
-func (parser *schemaParser) parseSchema(schema interface{}) (types.Type, error) {
-	return parser.parseSchemaWithPropertyKey(schema, "")
-}
-
-func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, propertyKey string) (types.Type, error) {
+func parseSchema(schema interface{}) (types.Type, error) {
 	subSchema, ok := schema.(*gojsonschema.SubSchema)
 	if !ok {
 		return nil, fmt.Errorf("unexpected schema type %v", subSchema)
@@ -1079,10 +1061,7 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 
 	// Handle referenced schemas, returns directly when a $ref is found
 	if subSchema.RefSchema != nil {
-		if existing, ok := parser.definitionCache[subSchema.Ref.String()]; ok {
-			return types.NewObject(existing.properties, nil), nil
-		}
-		return parser.parseSchemaWithPropertyKey(subSchema.RefSchema, subSchema.Ref.String())
+		return parseSchema(subSchema.RefSchema)
 	}
 
 	// Handle anyOf
@@ -1094,7 +1073,7 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 			copySchema := *subSchema
 			copySchemaRef := &copySchema
 			copySchemaRef.AnyOf = nil
-			coreType, err := parser.parseSchema(copySchemaRef)
+			coreType, err := parseSchema(copySchemaRef)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected schema type %v: %w", subSchema, err)
 			}
@@ -1109,7 +1088,7 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 
 		// Iterate through every property of AnyOf and add it to orType
 		for _, pSchema := range subSchema.AnyOf {
-			newtype, err := parser.parseSchema(pSchema)
+			newtype, err := parseSchema(pSchema)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected schema type %v: %w", pSchema, err)
 			}
@@ -1132,12 +1111,12 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 				if err != nil {
 					return nil, err
 				}
-				return parser.parseSchema(objectOrArrayResult)
+				return parseSchema(objectOrArrayResult)
 			} else if subSchema.Types.String() != allOfResult.Types.String() {
 				return nil, fmt.Errorf("unable to merge these schemas")
 			}
 		}
-		return parser.parseSchema(allOfResult)
+		return parseSchema(allOfResult)
 	}
 
 	if subSchema.Types.IsTyped() {
@@ -1152,28 +1131,15 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 
 		} else if subSchema.Types.Contains("object") {
 			if len(subSchema.PropertiesChildren) > 0 {
-				def := &cachedDef{
-					properties: make([]*types.StaticProperty, 0, len(subSchema.PropertiesChildren)),
-				}
+				staticProps := make([]*types.StaticProperty, 0, len(subSchema.PropertiesChildren))
 				for _, pSchema := range subSchema.PropertiesChildren {
-					def.properties = append(def.properties, types.NewStaticProperty(pSchema.Property, nil))
-				}
-				if propertyKey != "" {
-					parser.definitionCache[propertyKey] = def
-				}
-				for _, pSchema := range subSchema.PropertiesChildren {
-					newtype, err := parser.parseSchema(pSchema)
+					newtype, err := parseSchema(pSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v: %w", pSchema, err)
 					}
-					for i, prop := range def.properties {
-						if prop.Key == pSchema.Property {
-							def.properties[i].Value = newtype
-							break
-						}
-					}
+					staticProps = append(staticProps, types.NewStaticProperty(pSchema.Property, newtype))
 				}
-				return types.NewObject(def.properties, nil), nil
+				return types.NewObject(staticProps, nil), nil
 			}
 			return types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)), nil
 
@@ -1181,7 +1147,7 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 			if len(subSchema.ItemsChildren) > 0 {
 				if subSchema.ItemsChildrenIsSingleSchema {
 					iSchema := subSchema.ItemsChildren[0]
-					newtype, err := parser.parseSchema(iSchema)
+					newtype, err := parseSchema(iSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v", iSchema)
 					}
@@ -1190,7 +1156,7 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 				newTypes := make([]types.Type, 0, len(subSchema.ItemsChildren))
 				for i := 0; i != len(subSchema.ItemsChildren); i++ {
 					iSchema := subSchema.ItemsChildren[i]
-					newtype, err := parser.parseSchema(iSchema)
+					newtype, err := parseSchema(iSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v", iSchema)
 					}
@@ -1205,11 +1171,11 @@ func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, prope
 	// Assume types if not specified in schema
 	if len(subSchema.PropertiesChildren) > 0 {
 		if err := subSchema.Types.Add("object"); err == nil {
-			return parser.parseSchema(subSchema)
+			return parseSchema(subSchema)
 		}
 	} else if len(subSchema.ItemsChildren) > 0 {
 		if err := subSchema.Types.Add("array"); err == nil {
-			return parser.parseSchema(subSchema)
+			return parseSchema(subSchema)
 		}
 	}
 
@@ -1599,11 +1565,11 @@ func checkVoidCalls(env *TypeEnv, x interface{}) Errors {
 //
 // For example, given the following print statement:
 //
-//	print("the value of x is:", input.x)
+//   print("the value of x is:", input.x)
 //
 // The expression would be rewritten to:
 //
-//	print({__local0__ | __local0__ = "the value of x is:"}, {__local1__ | __local1__ = input.x})
+//   print({__local0__ | __local0__ = "the value of x is:"}, {__local1__ | __local1__ = input.x})
 func rewritePrintCalls(gen *localVarGenerator, getArity func(Ref) int, globals VarSet, body Body) Errors {
 
 	var errs Errors
@@ -4618,7 +4584,7 @@ func rewriteDeclaredVarsInExpr(g *localVarGenerator, stack *localDeclaredVars, e
 		case *Term:
 			stop, errs = rewriteDeclaredVarsInTerm(g, stack, x, errs, strict)
 		case *With:
-			errs = rewriteDeclaredVarsInTermRecursive(g, stack, x.Value, errs, strict)
+			_, errs = rewriteDeclaredVarsInTerm(g, stack, x.Value, errs, strict)
 			stop = true
 		}
 		return stop
@@ -4756,7 +4722,7 @@ func rewriteDeclaredVarsInTermRecursive(g *localVarGenerator, stack *localDeclar
 		var stop bool
 		switch n := n.(type) {
 		case *With:
-			errs = rewriteDeclaredVarsInTermRecursive(g, stack, n.Value, errs, strict)
+			_, errs = rewriteDeclaredVarsInTerm(g, stack, n.Value, errs, strict)
 			stop = true
 		case *Term:
 			stop, errs = rewriteDeclaredVarsInTerm(g, stack, n, errs, strict)

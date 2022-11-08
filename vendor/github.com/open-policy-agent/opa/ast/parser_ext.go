@@ -431,13 +431,10 @@ func ParseModuleWithOpts(filename, input string, popts ParserOptions) (*Module, 
 // ParseBody returns exactly one body.
 // If multiple bodies are parsed, an error is returned.
 func ParseBody(input string) (Body, error) {
-	return ParseBodyWithOpts(input, ParserOptions{SkipRules: true})
+	return ParseBodyWithOpts(input, ParserOptions{})
 }
 
-// ParseBodyWithOpts returns exactly one body. It does _not_ set SkipRules: true on its own,
-// but respects whatever ParserOptions it's been given.
 func ParseBodyWithOpts(input string, popts ParserOptions) (Body, error) {
-
 	stmts, _, err := ParseStatementsWithOpts("", input, popts)
 	if err != nil {
 		return nil, err
@@ -566,7 +563,6 @@ func ParseStatementsWithOpts(filename, input string, popts ParserOptions) ([]Sta
 		WithFutureKeywords(popts.FutureKeywords...).
 		WithAllFutureKeywords(popts.AllFutureKeywords).
 		WithCapabilities(popts.Capabilities).
-		WithSkipRules(popts.SkipRules).
 		withUnreleasedKeywords(popts.unreleasedKeywords)
 
 	stmts, comments, errs := parser.Parse()
@@ -586,14 +582,14 @@ func parseModule(filename string, stmts []Statement, comments []*Comment) (*Modu
 
 	var errs Errors
 
-	pkg, ok := stmts[0].(*Package)
+	_package, ok := stmts[0].(*Package)
 	if !ok {
 		loc := stmts[0].Loc()
 		errs = append(errs, NewError(ParseErr, loc, "package expected"))
 	}
 
 	mod := &Module{
-		Package: pkg,
+		Package: _package,
 		stmts:   stmts,
 	}
 
