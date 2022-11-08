@@ -29,7 +29,6 @@ type (
 		Location         *Location                    `json:"-"`
 		Scope            string                       `json:"scope"`
 		Title            string                       `json:"title,omitempty"`
-		Entrypoint       bool                         `json:"entrypoint,omitempty"`
 		Description      string                       `json:"description,omitempty"`
 		Organizations    []string                     `json:"organizations,omitempty"`
 		RelatedResources []*RelatedResourceAnnotation `json:"related_resources,omitempty"`
@@ -133,13 +132,6 @@ func (a *Annotations) Compare(other *Annotations) int {
 
 	if cmp := compareSchemas(a.Schemas, other.Schemas); cmp != 0 {
 		return cmp
-	}
-
-	if a.Entrypoint != other.Entrypoint {
-		if a.Entrypoint {
-			return 1
-		}
-		return -1
 	}
 
 	if cmp := util.Compare(a.Custom, other.Custom); cmp != 0 {
@@ -332,10 +324,6 @@ func (a *Annotations) toObject() (*Object, *Error) {
 		obj.Insert(StringTerm("title"), StringTerm(a.Title))
 	}
 
-	if a.Entrypoint {
-		obj.Insert(StringTerm("entrypoint"), BooleanTerm(true))
-	}
-
 	if len(a.Description) > 0 {
 		obj.Insert(StringTerm("description"), StringTerm(a.Description))
 	}
@@ -438,10 +426,6 @@ func attachAnnotationsNodes(mod *Module) Errors {
 		if err := validateAnnotationScopeAttachment(a); err != nil {
 			errs = append(errs, err)
 		}
-
-		if err := validateAnnotationEntrypointAttachment(a); err != nil {
-			errs = append(errs, err)
-		}
 	}
 
 	return errs
@@ -463,13 +447,6 @@ func validateAnnotationScopeAttachment(a *Annotations) *Error {
 	}
 
 	return NewError(ParseErr, a.Loc(), "invalid annotation scope '%v'", a.Scope)
-}
-
-func validateAnnotationEntrypointAttachment(a *Annotations) *Error {
-	if a.Entrypoint && !(a.Scope == annotationScopeRule || a.Scope == annotationScopePackage) {
-		return NewError(ParseErr, a.Loc(), "annotation entrypoint applied to non-rule or package scope '%v'", a.Scope)
-	}
-	return nil
 }
 
 // Copy returns a deep copy of a.

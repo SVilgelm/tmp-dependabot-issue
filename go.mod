@@ -3,9 +3,9 @@ module tmp-dependabot-issue
 go 1.19
 
 require (
-	github.com/open-policy-agent/opa v0.46.1
+	github.com/open-policy-agent/opa v0.45.0
 	github.com/prometheus/client_golang v1.13.1
-	golang.org/x/term v0.2.0
+	golang.org/x/term v0.1.0
 )
 
 require (

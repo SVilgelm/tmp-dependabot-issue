@@ -430,7 +430,9 @@ var A = NewAny()
 // NewAny returns a new Any type.
 func NewAny(of ...Type) Any {
 	sl := make(Any, len(of))
-	copy(sl, of)
+	for i := range sl {
+		sl[i] = of[i]
+	}
 	sort.Sort(typeSlice(sl))
 	return sl
 }
@@ -440,14 +442,10 @@ func (t Any) Contains(other Type) bool {
 	if _, ok := other.(*Function); ok {
 		return false
 	}
-	// Note(philipc): We used to do this as a linear search.
-	// Since this is always sorted, we can use a binary search instead.
-	i := sort.Search(len(t), func(i int) bool {
-		return Compare(t[i], other) >= 0
-	})
-	if i < len(t) && Compare(t[i], other) == 0 {
-		// x is present at t[i]
-		return true
+	for i := range t {
+		if Compare(t[i], other) == 0 {
+			return true
+		}
 	}
 	return len(t) == 0
 }
@@ -494,7 +492,9 @@ func (t Any) Union(other Any) Any {
 		return other
 	}
 	cpy := make(Any, len(t))
-	copy(cpy, t)
+	for i := range cpy {
+		cpy[i] = t[i]
+	}
 	for i := range other {
 		if !cpy.Contains(other[i]) {
 			cpy = append(cpy, other[i])
@@ -929,8 +929,8 @@ func Values(a Type) Type {
 		return Or(tpe, a.dynamic)
 	case *Object:
 		var tpe Type
-		for i := range a.static {
-			tpe = Or(tpe, a.static[i].Value)
+		for _, v := range a.static {
+			tpe = Or(tpe, v.Value)
 		}
 		if a.dynamic != nil {
 			tpe = Or(tpe, a.dynamic.Value)

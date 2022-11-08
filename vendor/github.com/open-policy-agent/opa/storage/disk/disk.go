@@ -33,7 +33,7 @@
 //
 // All keys written by the disk.Store implementation are prefixed as follows:
 //
-//	/<schema_version>/<partition_version>/<type>
+//   /<schema_version>/<partition_version>/<type>
 //
 // The <schema_version> value represents the version of the schema understood by
 // this version of OPA. Currently this is always set to 1. The
@@ -63,6 +63,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -418,12 +419,12 @@ func (db *Store) backupAndLoadDB() (*badger.DB, error) {
 	currDir := db.db.Opts().Dir
 
 	// backup db
-	backupDir, err := os.MkdirTemp(path.Dir(currDir), "backup")
+	backupDir, err := ioutil.TempDir(path.Dir(currDir), "backup")
 	if err != nil {
 		return nil, wrapError(err)
 	}
 
-	bak, err := os.CreateTemp(backupDir, "badgerbak")
+	bak, err := ioutil.TempFile(backupDir, "badgerbak")
 	if err != nil {
 		return nil, wrapError(err)
 	}
@@ -434,7 +435,7 @@ func (db *Store) backupAndLoadDB() (*badger.DB, error) {
 	}
 
 	// restore db
-	newDBDir, err := os.MkdirTemp(path.Dir(currDir), "backup")
+	newDBDir, err := ioutil.TempDir(path.Dir(currDir), "backup")
 	if err != nil {
 		return nil, wrapError(err)
 	}
@@ -805,9 +806,7 @@ func (db *Store) validatePartitions(ctx context.Context, txn *badger.Txn, existi
 
 // MakeDir makes Store a storage.MakeDirer, to avoid the superfluous MakeDir
 // steps -- MakeDir is implicit in the disk storage's data layout, since
-//
-//	{"foo": {"bar": {"baz": 10}}}
-//
+//     {"foo": {"bar": {"baz": 10}}}
 // writes value `10` to key `/foo/bar/baz`.
 //
 // Here, we only check if it's a write transaction, for consistency with

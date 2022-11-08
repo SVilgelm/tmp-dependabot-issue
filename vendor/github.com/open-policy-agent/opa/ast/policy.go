@@ -186,13 +186,12 @@ type (
 
 	// Head represents the head of a rule.
 	Head struct {
-		Location  *Location `json:"-"`
-		Name      Var       `json:"name,omitempty"`
-		Reference Ref       `json:"ref,omitempty"`
-		Args      Args      `json:"args,omitempty"`
-		Key       *Term     `json:"key,omitempty"`
-		Value     *Term     `json:"value,omitempty"`
-		Assign    bool      `json:"assign,omitempty"`
+		Location *Location `json:"-"`
+		Name     Var       `json:"name"`
+		Args     Args      `json:"args,omitempty"`
+		Key      *Term     `json:"key,omitempty"`
+		Value    *Term     `json:"value,omitempty"`
+		Assign   bool      `json:"assign,omitempty"`
 	}
 
 	// Args represents zero or more arguments to a rule.
@@ -599,22 +598,11 @@ func (rule *Rule) SetLoc(loc *Location) {
 
 // Path returns a ref referring to the document produced by this rule. If rule
 // is not contained in a module, this function panics.
-// Deprecated: Poor handling of ref rules. Use `(*Rule).Ref()` instead.
 func (rule *Rule) Path() Ref {
 	if rule.Module == nil {
 		panic("assertion failed")
 	}
-	return rule.Module.Package.Path.Extend(rule.Head.Ref().GroundPrefix())
-}
-
-// Ref returns a ref referring to the document produced by this rule. If rule
-// is not contained in a module, this function panics. The returned ref may
-// contain variables in the last position.
-func (rule *Rule) Ref() Ref {
-	if rule.Module == nil {
-		panic("assertion failed")
-	}
-	return rule.Module.Package.Path.Extend(rule.Head.Ref())
+	return rule.Module.Package.Path.Append(StringTerm(string(rule.Head.Name)))
 }
 
 func (rule *Rule) String() string {
@@ -660,8 +648,7 @@ func (rule *Rule) elseString() string {
 // used for the key and the second will be used for the value.
 func NewHead(name Var, args ...*Term) *Head {
 	head := &Head{
-		Name:      name, // backcompat
-		Reference: []*Term{NewTerm(name)},
+		Name: name,
 	}
 	if len(args) == 0 {
 		return head
@@ -671,23 +658,6 @@ func NewHead(name Var, args ...*Term) *Head {
 		return head
 	}
 	head.Value = args[1]
-	if head.Key != nil && head.Value != nil {
-		head.Reference = head.Reference.Append(args[0])
-	}
-	return head
-}
-
-// RefHead returns a new Head object with the passed Ref. If args are provided,
-// the first will be used for the value.
-func RefHead(ref Ref, args ...*Term) *Head {
-	head := &Head{}
-	head.SetRef(ref)
-	if len(ref) < 2 {
-		head.Name = ref[0].Value.(Var)
-	}
-	if len(args) >= 1 {
-		head.Value = args[0]
-	}
 	return head
 }
 
@@ -703,7 +673,7 @@ const (
 
 	// PartialObjectDoc represents an object document that is partially defined by the rule.
 	PartialObjectDoc
-) // TODO(sr): Deprecate?
+)
 
 // DocKind returns the type of document produced by this rule.
 func (head *Head) DocKind() DocKind {
@@ -714,41 +684,6 @@ func (head *Head) DocKind() DocKind {
 		return PartialSetDoc
 	}
 	return CompleteDoc
-}
-
-type RuleKind int
-
-const (
-	SingleValue = iota
-	MultiValue
-)
-
-// RuleKind returns the type of rule this is
-func (head *Head) RuleKind() RuleKind {
-	// NOTE(sr): This is bit verbose, since the key is irrelevant for single vs
-	//           multi value, but as good a spot as to assert the invariant.
-	switch {
-	case head.Value != nil:
-		return SingleValue
-	case head.Key != nil:
-		return MultiValue
-	default:
-		panic("unreachable")
-	}
-}
-
-// Ref returns the Ref of the rule. If it doesn't have one, it's filled in
-// via the Head's Name.
-func (head *Head) Ref() Ref {
-	if len(head.Reference) > 0 {
-		return head.Reference
-	}
-	return Ref{&Term{Value: head.Name}}
-}
-
-// SetRef can be used to set a rule head's Reference
-func (head *Head) SetRef(r Ref) {
-	head.Reference = r
 }
 
 // Compare returns an integer indicating whether head is less than, equal to,
@@ -770,9 +705,6 @@ func (head *Head) Compare(other *Head) int {
 	if cmp := Compare(head.Args, other.Args); cmp != 0 {
 		return cmp
 	}
-	if cmp := Compare(head.Reference, other.Reference); cmp != 0 {
-		return cmp
-	}
 	if cmp := Compare(head.Name, other.Name); cmp != 0 {
 		return cmp
 	}
@@ -785,7 +717,6 @@ func (head *Head) Compare(other *Head) int {
 // Copy returns a deep copy of head.
 func (head *Head) Copy() *Head {
 	cpy := *head
-	cpy.Reference = head.Reference.Copy()
 	cpy.Args = head.Args.Copy()
 	cpy.Key = head.Key.Copy()
 	cpy.Value = head.Value.Copy()
@@ -798,43 +729,23 @@ func (head *Head) Equal(other *Head) bool {
 }
 
 func (head *Head) String() string {
-	buf := strings.Builder{}
-	buf.WriteString(head.Ref().String())
-
-	switch {
-	case len(head.Args) != 0:
-		buf.WriteString(head.Args.String())
-	case len(head.Reference) == 1 && head.Key != nil:
-		buf.WriteRune('[')
-		buf.WriteString(head.Key.String())
-		buf.WriteRune(']')
+	var buf []string
+	if len(head.Args) != 0 {
+		buf = append(buf, head.Name.String()+head.Args.String())
+	} else if head.Key != nil {
+		buf = append(buf, head.Name.String()+"["+head.Key.String()+"]")
+	} else {
+		buf = append(buf, head.Name.String())
 	}
 	if head.Value != nil {
 		if head.Assign {
-			buf.WriteString(" := ")
+			buf = append(buf, ":=")
 		} else {
-			buf.WriteString(" = ")
+			buf = append(buf, "=")
 		}
-		buf.WriteString(head.Value.String())
-	} else if head.Name == "" && head.Key != nil {
-		buf.WriteString(" contains ")
-		buf.WriteString(head.Key.String())
+		buf = append(buf, head.Value.String())
 	}
-	return buf.String()
-}
-
-func (head *Head) MarshalJSON() ([]byte, error) {
-	// NOTE(sr): we do this to override the rendering of `head.Reference`.
-	// It's still what'll be used via the default means of encoding/json
-	// for unmarshaling a json object into a Head struct!
-	type h Head
-	return json.Marshal(struct {
-		h
-		Ref Ref `json:"ref"`
-	}{
-		h:   h(*head),
-		Ref: head.Ref(),
-	})
+	return strings.Join(buf, " ")
 }
 
 // Vars returns a set of vars found in the head.
@@ -849,9 +760,6 @@ func (head *Head) Vars() VarSet {
 	}
 	if head.Value != nil {
 		vis.Walk(head.Value)
-	}
-	if len(head.Reference) > 0 {
-		vis.Walk(head.Reference[1:])
 	}
 	return vis.vars
 }

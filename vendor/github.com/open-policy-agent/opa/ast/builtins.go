@@ -240,7 +240,6 @@ var DefaultBuiltins = [...]*Builtin{
 	GraphQLParseQuery,
 	GraphQLParseSchema,
 	GraphQLIsValid,
-	GraphQLSchemaIsValid,
 
 	// Rego
 	RegoParseModule,
@@ -261,7 +260,6 @@ var DefaultBuiltins = [...]*Builtin{
 	NetCIDRExpand,
 	NetCIDRMerge,
 	NetLookupIPAddr,
-	NetCIDRIsValid,
 
 	// Glob
 	GlobMatch,
@@ -2602,19 +2600,6 @@ var GraphQLIsValid = &Builtin{
 	),
 }
 
-// GraphQLSchemaIsValid returns true if the input is valid GraphQL schema,
-// and returns false for all other inputs.
-var GraphQLSchemaIsValid = &Builtin{
-	Name:        "graphql.schema_is_valid",
-	Description: "Checks that the input is a valid GraphQL schema. The schema can be either a GraphQL string or an AST object from the other GraphQL builtin functions.",
-	Decl: types.NewFunction(
-		types.Args(
-			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
-		),
-		types.Named("output", types.B).Description("`true` if the schema is a valid GraphQL schema. `false` otherwise."),
-	),
-}
-
 /**
  * Rego
  */
@@ -2783,17 +2768,6 @@ Supports both IPv4 and IPv6 notations. IPv6 inputs need a prefix length (e.g. "/
 			)).Description("CIDRs or IP addresses"),
 		),
 		types.Named("output", types.NewSet(types.S)).Description("smallest possible set of CIDRs obtained after merging the provided list of IP addresses and subnets in `addrs`"),
-	),
-}
-
-var NetCIDRIsValid = &Builtin{
-	Name:        "net.cidr_is_valid",
-	Description: "Parses an IPv4/IPv6 CIDR and returns a boolean indicating if the provided CIDR is valid.",
-	Decl: types.NewFunction(
-		types.Args(
-			types.Named("cidr", types.S),
-		),
-		types.Named("result", types.B),
 	),
 }
 

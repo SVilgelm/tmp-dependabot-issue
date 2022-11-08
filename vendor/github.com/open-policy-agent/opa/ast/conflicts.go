@@ -27,12 +27,7 @@ func CheckPathConflicts(c *Compiler, exists func([]string) (bool, error)) Errors
 
 func checkDocumentConflicts(node *TreeNode, exists func([]string) (bool, error), path []string) Errors {
 
-	switch key := node.Key.(type) {
-	case String:
-		path = append(path, string(key))
-	default: // other key types cannot conflict with data
-		return nil
-	}
+	path = append(path, string(node.Key.(String)))
 
 	if len(node.Values) > 0 {
 		s := strings.Join(path, "/")

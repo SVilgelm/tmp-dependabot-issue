@@ -13,7 +13,7 @@ import (
 // be set to nil and no transformations will be applied to children of the
 // element.
 type Transformer interface {
-	Transform(interface{}) (interface{}, error)
+	Transform(v interface{}) (interface{}, error)
 }
 
 // Transform iterates the AST and calls the Transform function on the
@@ -116,9 +116,6 @@ func Transform(t Transformer, x interface{}) (interface{}, error) {
 		}
 		return y, nil
 	case *Head:
-		if y.Reference, err = transformRef(t, y.Reference); err != nil {
-			return nil, err
-		}
 		if y.Name, err = transformVar(t, y.Name); err != nil {
 			return nil, err
 		}
@@ -330,7 +327,7 @@ func TransformComprehensions(x interface{}, f func(interface{}) (Value, error)) 
 // GenericTransformer implements the Transformer interface to provide a utility
 // to transform AST nodes using a closure.
 type GenericTransformer struct {
-	f func(interface{}) (interface{}, error)
+	f func(x interface{}) (interface{}, error)
 }
 
 // NewGenericTransformer returns a new GenericTransformer that will transform
@@ -416,16 +413,4 @@ func transformVar(t Transformer, v Var) (Var, error) {
 		return "", fmt.Errorf("illegal transform: %T != %T", v, v1)
 	}
 	return r, nil
-}
-
-func transformRef(t Transformer, r Ref) (Ref, error) {
-	r1, err := Transform(t, r)
-	if err != nil {
-		return nil, err
-	}
-	r2, ok := r1.(Ref)
-	if !ok {
-		return nil, fmt.Errorf("illegal transform: %T != %T", r, r2)
-	}
-	return r2, nil
 }

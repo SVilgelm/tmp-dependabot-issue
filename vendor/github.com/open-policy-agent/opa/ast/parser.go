@@ -567,41 +567,14 @@ func (p *Parser) parseRules() []*Rule {
 		return []*Rule{&rule}
 	}
 
-	if usesContains && !rule.Head.Reference.IsGround() {
-		p.error(p.s.Loc(), "multi-value rules need ground refs")
+	hasIf := false
+	if p.s.tok == tokens.If {
+		hasIf = true
+	}
+
+	if hasIf && !usesContains && rule.Head.Key != nil && rule.Head.Value == nil {
+		p.illegal("invalid for partial set rule %s (use `contains`)", rule.Head.Name)
 		return nil
-	}
-
-	// back-compat with `p[x] { ... }``
-	hasIf := p.s.tok == tokens.If
-
-	// p[x] if ...  becomes a single-value rule p[x]
-	if hasIf && !usesContains && len(rule.Head.Ref()) == 2 {
-		if rule.Head.Value == nil {
-			rule.Head.Value = BooleanTerm(true).SetLocation(rule.Head.Location)
-		} else {
-			// p[x] = y if  becomes a single-value rule p[x] with value y, but needs name for compat
-			v, ok := rule.Head.Ref()[0].Value.(Var)
-			if !ok {
-				return nil
-			}
-			rule.Head.Name = v
-		}
-	}
-
-	// p[x]         becomes a multi-value rule p
-	if !hasIf && !usesContains &&
-		len(rule.Head.Args) == 0 && // not a function
-		len(rule.Head.Ref()) == 2 { // ref like 'p[x]'
-		v, ok := rule.Head.Ref()[0].Value.(Var)
-		if !ok {
-			return nil
-		}
-		rule.Head.Name = v
-		rule.Head.Key = rule.Head.Ref()[1]
-		if rule.Head.Value == nil {
-			rule.Head.SetRef(rule.Head.Ref()[:len(rule.Head.Ref())-1])
-		}
 	}
 
 	switch {
@@ -770,69 +743,67 @@ func (p *Parser) parseElse(head *Head) *Rule {
 
 func (p *Parser) parseHead(defaultRule bool) (*Head, bool) {
 
-	head := &Head{}
-	loc := p.s.Loc()
+	var head Head
+	head.SetLoc(p.s.Loc())
+
 	defer func() {
-		if head != nil {
-			head.SetLoc(loc)
-			head.Location.Text = p.s.Text(head.Location.Offset, p.s.lastEnd)
-		}
+		head.Location.Text = p.s.Text(head.Location.Offset, p.s.lastEnd)
 	}()
 
-	term := p.parseVar()
-	if term == nil {
-		return nil, false
-	}
-
-	ref := p.parseTermFinish(term, true)
-	if ref == nil {
+	if term := p.parseVar(); term != nil {
+		head.Name = term.Value.(Var)
+	} else {
 		p.illegal("expected rule head name")
-		return nil, false
 	}
 
-	switch x := ref.Value.(type) {
-	case Var:
-		head = NewHead(x)
-	case Ref:
-		head = RefHead(x)
-	case Call:
-		op, args := x[0], x[1:]
-		var ref Ref
-		switch y := op.Value.(type) {
-		case Var:
-			ref = Ref{op}
-		case Ref:
-			if _, ok := y[0].Value.(Var); !ok {
-				p.illegal("rule head ref %v invalid", y)
+	p.scan()
+
+	if p.s.tok == tokens.LParen {
+		p.scan()
+		if p.s.tok != tokens.RParen {
+			head.Args = p.parseTermList(tokens.RParen, nil)
+			if head.Args == nil {
 				return nil, false
 			}
-			ref = y
 		}
-		head = RefHead(ref)
-		head.Args = append([]*Term{}, args...)
+		p.scan()
 
-	default:
-		return nil, false
+		if p.s.tok == tokens.LBrack {
+			return nil, false
+		}
 	}
 
-	name := head.Ref().String()
-
-	switch p.s.tok {
-	case tokens.Contains: // NOTE: no Value for `contains` heads, we return here
+	if p.s.tok == tokens.LBrack {
 		p.scan()
 		head.Key = p.parseTermInfixCall()
 		if head.Key == nil {
-			p.illegal("expected rule key term (e.g., %s contains <VALUE> { ... })", name)
+			p.illegal("expected rule key term (e.g., %s[<VALUE>] { ... })", head.Name)
 		}
-		return head, true
+		if p.s.tok != tokens.RBrack {
+			if _, ok := futureKeywords[head.Name.String()]; ok {
+				p.hint("`import future.keywords.%[1]s` for '%[1]s' keyword", head.Name.String())
+			}
+			p.illegal("non-terminated rule key")
+		}
+		p.scan()
+	}
 
+	switch p.s.tok {
+	case tokens.Contains:
+		p.scan()
+		head.Key = p.parseTermInfixCall()
+		if head.Key == nil {
+			p.illegal("expected rule key term (e.g., %s contains <VALUE> { ... })", head.Name)
+		}
+
+		return &head, true
 	case tokens.Unify:
 		p.scan()
 		head.Value = p.parseTermInfixCall()
 		if head.Value == nil {
-			// FIX HEAD.String()
-			p.illegal("expected rule value term (e.g., %s[%s] = <VALUE> { ... })", name, head.Key)
+			p.illegal("expected rule value term (e.g., %s[%s] = <VALUE> { ... })", head.Name, head.Key)
 		}
+
 	case tokens.Assign:
 		s := p.save()
 		p.scan()
@@ -842,23 +813,22 @@ func (p *Parser) parseHead(defaultRule bool) (*Head, bool) {
 			p.restore(s)
 			switch {
 			case len(head.Args) > 0:
-				p.illegal("expected function value term (e.g., %s(...) := <VALUE> { ... })", name)
+				p.illegal("expected function value term (e.g., %s(...) := <VALUE> { ... })", head.Name)
 			case head.Key != nil:
-				p.illegal("expected partial rule value term (e.g., %s[...] := <VALUE> { ... })", name)
+				p.illegal("expected partial rule value term (e.g., %s[...] := <VALUE> { ... })", head.Name)
 			case defaultRule:
-				p.illegal("expected default rule value term (e.g., default %s := <VALUE>)", name)
+				p.illegal("expected default rule value term (e.g., default %s := <VALUE>)", head.Name)
 			default:
-				p.illegal("expected rule value term (e.g., %s := <VALUE> { ... })", name)
+				p.illegal("expected rule value term (e.g., %s := <VALUE> { ... })", head.Name)
 			}
 		}
 	}
 
 	if head.Value == nil && head.Key == nil {
-		if len(head.Ref()) != 2 || len(head.Args) > 0 {
-			head.Value = BooleanTerm(true).SetLocation(head.Location)
-		}
+		head.Value = BooleanTerm(true).SetLocation(head.Location)
 	}
-	return head, false
+
+	return &head, false
 }
 
 func (p *Parser) parseBody(end tokens.Token) Body {
@@ -1378,18 +1348,17 @@ func (p *Parser) parseTerm() *Term {
 		p.illegalToken()
 	}
 
-	term = p.parseTermFinish(term, false)
+	term = p.parseTermFinish(term)
 	p.parsedTermCachePush(term, s0)
 	return term
 }
 
-func (p *Parser) parseTermFinish(head *Term, skipws bool) *Term {
+func (p *Parser) parseTermFinish(head *Term) *Term {
 	if head == nil {
 		return nil
 	}
 	offset := p.s.loc.Offset
-	p.doScan(skipws)
-
+	p.scanWS()
 	switch p.s.tok {
 	case tokens.LParen, tokens.Dot, tokens.LBrack:
 		return p.parseRef(head, offset)
@@ -2115,7 +2084,6 @@ func (p *Parser) validateDefaultRuleValue(rule *Rule) bool {
 type rawAnnotation struct {
 	Scope            string                 `yaml:"scope"`
 	Title            string                 `yaml:"title"`
-	Entrypoint       bool                   `yaml:"entrypoint"`
 	Description      string                 `yaml:"description"`
 	Organizations    []string               `yaml:"organizations"`
 	RelatedResources []interface{}          `yaml:"related_resources"`
@@ -2170,7 +2138,6 @@ func (b *metadataParser) Parse() (*Annotations, error) {
 
 	var result Annotations
 	result.Scope = raw.Scope
-	result.Entrypoint = raw.Entrypoint
 	result.Title = raw.Title
 	result.Description = raw.Description
 	result.Organizations = raw.Organizations
