@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 1
+    labels: [ ]
+    ignore:
+      - dependency-name: "github.com/open-policy-agent/opa" # produces very large update (>200MB) and dependabot does not support so large pull requests
